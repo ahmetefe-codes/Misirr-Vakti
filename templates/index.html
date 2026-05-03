@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍿</text></svg>">
+    <title>Patlamış Mısır Vakti</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080810;
+            --bg2: #0f0f1a;
+            --bg3: #16161f;
+            --bg4: #1e1e2a;
+            --accent: #e50914;
+            --accent-glow: rgba(229,9,20,0.25);
+            --gold: #f5c518;
+            --text: #f0f0f8;
+            --text2: #7070a0;
+            --text3: #4a4a6a;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* NAVBAR */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(8,8,16,0.85);
+            backdrop-filter: blur(24px);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            padding: 0 48px;
+            height: 68px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            color: var(--accent);
+            letter-spacing: 3px;
+            text-shadow: 0 0 40px var(--accent-glow);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .search-wrap {
+            flex: 1;
+            max-width: 480px;
+            position: relative;
+        }
+
+        .search-wrap svg {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .search-wrap input {
+            width: 100%;
+            padding: 11px 18px 11px 46px;
+            background: var(--bg4);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 50px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-wrap input:focus {
+            border-color: rgba(229,9,20,0.5);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            background: var(--bg3);
+        }
+
+        .search-wrap input::placeholder { color: var(--text3); }
+
+        .nav-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text2);
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .film-sayisi {
+            background: var(--bg4);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 50px;
+            padding: 5px 14px;
+            font-size: 13px;
+        }
+
+        .film-sayisi b { color: var(--accent); }
+
+        /* KATEGORİ SIDEBAR */
+        .layout {
+            display: flex;
+            min-height: calc(100vh - 68px);
+        }
+
+        .sidebar {
+            width: 200px;
+            flex-shrink: 0;
+            padding: 28px 16px;
+            border-right: 1px solid rgba(255,255,255,0.04);
+            position: sticky;
+            top: 68px;
+            height: calc(100vh - 68px);
+            overflow-y: auto;
+        }
+
+        .sidebar::-webkit-scrollbar { width: 0; }
+
+        .sidebar-title {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text3);
+            padding: 0 8px;
+            margin-bottom: 10px;
+        }
+
+        .kat-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text2);
+            font-size: 13.5px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .kat-btn:hover {
+            background: var(--bg4);
+            color: var(--text);
+        }
+
+        .kat-btn.aktif {
+            background: rgba(229,9,20,0.12);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .kat-btn .kat-emoji {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .kat-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.04);
+            margin: 10px 8px;
+        }
+
+        /* ANA İÇERİK */
+        .main {
+            flex: 1;
+            padding: 28px 32px 60px;
+            min-width: 0;
+        }
+
+        .main-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .aktif-baslik {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            letter-spacing: 2px;
+            color: var(--text);
+        }
+
+        .sonuc-sayi {
+            font-size: 13px;
+            color: var(--text3);
+        }
+
+        /* GRİD */
+        .film-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 18px;
+        }
+
+        /* KART */
+        .film-card {
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--bg3);
+            border: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s, border-color 0.25s;
+            animation: fadeUp 0.4s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .film-card:hover {
+            transform: translateY(-6px) scale(1.03);
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(229,9,20,0.25);
+            border-color: rgba(229,9,20,0.2);
+        }
+
+        .card-poster {
+            position: relative;
+            padding-top: 148%;
+            overflow: hidden;
+        }
+
+        .card-poster img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s;
+        }
+
+        .film-card:hover .card-poster img { transform: scale(1.07); }
+
+        .card-gradient {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(8,8,16,1) 0%, rgba(8,8,16,0.4) 40%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 14px;
+            gap: 8px;
+        }
+
+        .film-card:hover .card-gradient { opacity: 1; }
+
+        .play-circle {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 24px var(--accent-glow);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .play-circle:hover { transform: scale(1.1); }
+
+        .play-circle svg { margin-left: 3px; }
+
+        .card-imdb {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(245,197,24,0.15);
+            border: 1px solid rgba(245,197,24,0.3);
+            color: var(--gold);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            width: fit-content;
+        }
+
+        .card-info {
+            padding: 10px 12px 12px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.35;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .card-kat {
+            font-size: 11px;
+            color: var(--text3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* MODAL */
+        .modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(12px);
+        }
+
+        .modal-bg.aktif { display: flex; }
+
+        .modal {
+            background: var(--bg2);
+            border-radius: 18px;
+            width: 92%;
+            max-width: 860px;
+            max-height: 92vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.07);
+            box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+            animation: modalIn 0.3s cubic-bezier(.34,1.56,.64,1);
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.92) translateY(20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .modal::-webkit-scrollbar { width: 0; }
+
+        .modal-hero {
+            position: relative;
+            height: 220px;
+            overflow: hidden;
+            border-radius: 18px 18px 0 0;
+        }
+
+        .modal-hero img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(4px) brightness(0.4);
+            transform: scale(1.05);
+        }
+
+        .modal-hero-content {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: flex-end;
+            padding: 24px 28px;
+            background: linear-gradient(to top, var(--bg2) 0%, transparent 60%);
+        }
+
+        .modal-hero-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 36px;
+            letter-spacing: 1px;
+            line-height: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-close:hover { background: var(--accent); border-color: var(--accent); }
+
+        .modal-body {
+            padding: 20px 28px 28px;
+        }
+
+        .modal-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .modal-tag {
+            padding: 5px 12px;
+            border-radius: 6px;
+            background: var(--bg4);
+            border: 1px solid rgba(255,255,255,0.06);
+            font-size: 12px;
+            color: var(--text2);
+        }
+
+        .modal-tag.imdb-tag {
+            background: rgba(245,197,24,0.1);
+            border-color: rgba(245,197,24,0.25);
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        .modal-player {
+            width: 100%;
+            aspect-ratio: 16/9;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .modal-player iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* LOADING */
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(8,8,16,0.95);
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .loader-ring {
+            width: 56px;
+            height: 56px;
+            border: 3px solid rgba(229,9,20,0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loader-label {
+            color: var(--text3);
+            font-size: 12px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* BOŞ */
+        .bos {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text3);
+        }
+        .bos .ico { font-size: 48px; margin-bottom: 16px; }
+        .bos h3 { font-size: 18px; color: var(--text2); margin-bottom: 6px; }
+
+        @media (max-width: 768px) {
+            nav { padding: 0 16px; }
+            .sidebar { display: none; }
+            .main { padding: 16px 16px 60px; }
+            .film-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+            .modal { width: 96%; }
+            .modal-hero-title { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+    <div class="loader-ring"></div>
+    <div class="loader-label">Yükleniyor</div>
+</div>
+
+<nav>
+    <div class="nav-logo">🍿 MISIR VAKTİ</div>
+    <div class="search-wrap">
+        <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" id="aramaInput" placeholder="Film ara..." oninput="filtrele()">
+    </div>
+    <div class="nav-right">
+        <div class="film-sayisi" id="filmSayisi"><b>0</b> film</div>
+    </div>
+</nav>
+
+<div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-title">Kategoriler</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+        <div class="main-header">
+            <div class="aktif-baslik" id="aktifBaslik">Tüm Filmler</div>
+            <div class="sonuc-sayi" id="sonucSayi"></div>
+        </div>
+        <div class="film-grid" id="filmGrid"></div>
+    </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" onclick="modalDis(event)">
+    <div class="modal">
+        <div class="modal-hero">
+            <img id="modalAfis" src="" alt="">
+            <div class="modal-hero-content">
+                <div class="modal-hero-title" id="modalBaslik"></div>
+            </div>
+            <button class="modal-close" onclick="modalKapat()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-tags" id="modalTags"></div>
+            <div class="modal-player">
+                <iframe id="modalPlayer" src="" allowfullscreen referrerpolicy="no-referrer"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Kategori emoji eşlemesi
+    const KAT_EMOJI = {
+        'Aile': '👨‍👩‍👧', 'Aksiyon': '💥', 'Animasyon': '🎨',
+        'Belgesel': '🎙️', 'Bilim Kurgu': '🚀', 'Dram': '🎭',
+        'Fantastik': '🧙', 'Gerilim': '😱', 'Gizem': '🔍',
+        'Komedi': '😂', 'Korku': '👻', 'Macera': '⚔️',
+        'Müzik': '🎵', 'Romantik': '❤️', 'Savaş': '🪖',
+        'Suç': '🕵️', 'Tarih': '📜', 'TV Film': '📺',
+        'Vahşi Batı': '🤠', 'Yerli': '🇹🇷'
+    };
+
+    // Kategori temizleme: "Aksiyon Filmleri" → "Aksiyon"
+    const TEMIZ_KATEGORILER = new Set(Object.keys(KAT_EMOJI));
+
+    function kategoriTemizle(kat) {
+        if (!kat) return null;
+        kat = kat.trim();
+        // Direkt eşleşme
+        if (TEMIZ_KATEGORILER.has(kat)) return kat;
+        // "X Filmleri" → "X"
+        const temiz = kat.replace(/\s*Filmleri$/i, '').trim();
+        if (TEMIZ_KATEGORILER.has(temiz)) return temiz;
+        return null;
+    }
+
+    let tumFilmler = [];
+    let aktifKategori = '';
+
+    document.addEventListener('DOMContentLoaded', filmleriYukle);
+
+    async function filmleriYukle() {
+        document.getElementById('loadingOverlay').style.display = 'flex';
+        try {
+            const res = await fetch('/filmleri-getir');
+            tumFilmler = await res.json();
+
+            // Kategorileri temizle
+            tumFilmler.forEach(f => {
+                const ham = f.kategoriler || (f.kategori ? [f.kategori] : []);
+                const temiz = [...new Set(ham.map(kategoriTemizle).filter(Boolean))];
+                f._kategoriler = temiz.length ? temiz : ['Diğer'];
+            });
+
+            sidebarOlustur();
+            filtrele();
+            document.getElementById('filmSayisi').innerHTML = `<b>${tumFilmler.length}</b> film`;
+        } catch(e) {
+            console.error(e);
+        } finally {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+    }
+
+    function sidebarOlustur() {
+        const sidebar = document.getElementById('sidebar');
+        const sayimlar = {};
+
+        tumFilmler.forEach(f => {
+            f._kategoriler.forEach(k => {
+                sayimlar[k] = (sayimlar[k] || 0) + 1;
+            });
+        });
+
+        // Tümü butonu
+        const tumBtn = document.createElement('button');
+        tumBtn.className = 'kat-btn aktif';
+        tumBtn.innerHTML = `<span class="kat-emoji">🎬</span> Tümü`;
+        tumBtn.onclick = () => kategoriSec(tumBtn, '', 'Tüm Filmler');
+        sidebar.appendChild(tumBtn);
+
+        const divider = document.createElement('div');
+        divider.className = 'kat-divider';
+        sidebar.appendChild(divider);
+
+        const sirali = Object.keys(sayimlar).sort();
+        sirali.forEach(kat => {
+            const btn = document.createElement('button');
+            btn.className = 'kat-btn';
+            const emoji = KAT_EMOJI[kat] || '🎬';
+            btn.innerHTML = `<span class="kat-emoji">${emoji}</span> ${kat}`;
+            btn.onclick = () => kategoriSec(btn, kat, kat);
+            sidebar.appendChild(btn);
+        });
+    }
+
+    function kategoriSec(el, kat, baslik) {
+        document.querySelectorAll('.kat-btn').forEach(b => b.classList.remove('aktif'));
+        el.classList.add('aktif');
+        aktifKategori = kat;
+        document.getElementById('aktifBaslik').textContent = baslik;
+        filtrele();
+    }
+
+    function filtrele() {
+        const ara = document.getElementById('aramaInput').value.trim().toLowerCase();
+
+        let sonuclar = tumFilmler.filter(f => {
+            const katEslesti = !aktifKategori || f._kategoriler.includes(aktifKategori);
+            const aramaEslesti = !ara || f.baslik.toLowerCase().includes(ara);
+            return katEslesti && aramaEslesti;
+        });
+
+        document.getElementById('sonucSayi').textContent = `${sonuclar.length} sonuç`;
+        renderFilmler(sonuclar);
+    }
+
+    function renderFilmler(filmler) {
+        const grid = document.getElementById('filmGrid');
+        grid.innerHTML = '';
+
+        if (!filmler.length) {
+            grid.innerHTML = `<div class="bos"><div class="ico">🎬</div><h3>Film bulunamadı</h3><p>Farklı bir arama dene.</p></div>`;
+            return;
+        }
+
+        filmler.forEach((film, i) => {
+            const afis = film.afis || 'https://via.placeholder.com/160x240/16161f/4a4a6a?text=🎬';
+            const imdb = film.imdb || '';
+            const katlar = film._kategoriler;
+
+            const card = document.createElement('div');
+            card.className = 'film-card';
+            card.style.animationDelay = `${Math.min(i * 0.025, 0.4)}s`;
+            card.innerHTML = `
+                <div class="card-poster">
+                    <img src="${afis}" alt="${film.baslik}" loading="lazy" onerror="this.src='https://via.placeholder.com/160x240/16161f/4a4a6a?text=🎬'">
+                    <div class="card-gradient">
+                        <div class="play-circle">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>
+                        </div>
+                        ${imdb ? `<div class="card-imdb">⭐ ${imdb}</div>` : ''}
+                    </div>
+                </div>
+                <div class="card-info">
+                    <div class="card-title" title="${film.baslik}">${film.baslik}</div>
+                    <div class="card-kat">${katlar.slice(0,2).join(' · ')}</div>
+                </div>
+            `;
+            card.onclick = () => filmAc(film);
+            grid.appendChild(card);
+        });
+    }
+
+    function filmAc(film) {
+        document.getElementById('modalAfis').src = film.afis || '';
+        document.getElementById('modalBaslik').textContent = film.baslik;
+        document.getElementById('modalPlayer').src = film.video_linki;
+
+        const tags = document.getElementById('modalTags');
+        tags.innerHTML = '';
+
+        if (film.imdb) {
+            const t = document.createElement('div');
+            t.className = 'modal-tag imdb-tag';
+            t.textContent = `⭐ IMDb ${film.imdb}`;
+            tags.appendChild(t);
+        }
+
+        film._kategoriler.forEach(k => {
+            const t = document.createElement('div');
+            t.className = 'modal-tag';
+            t.textContent = `${KAT_EMOJI[k] || ''} ${k}`;
+            tags.appendChild(t);
+        });
+
+        document.getElementById('modalBg').classList.add('aktif');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function modalDis(e) {
+        if (e.target === document.getElementById('modalBg')) modalKapat();
+    }
+
+    function modalKapat() {
+        document.getElementById('modalBg').classList.remove('aktif');
+        document.getElementById('modalPlayer').src = '';
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') modalKapat(); });
+</script>
+</body>
+</html>
