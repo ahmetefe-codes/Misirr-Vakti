@@ -503,6 +503,78 @@
             .modal { width: 96%; }
             .modal-hero-title { font-size: 26px; }
         }
+        /* SAYFALAMA KONTROLLERİ */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 40px;
+        }
+        .sayfa-btn {
+            background: var(--bg4);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .sayfa-btn:hover:not(:disabled) {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .sayfa-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .sayfa-bilgi { font-size: 14px; color: var(--text2); }
+        
+        /* YENİ MODAL AÇIKLAMA TASARIMI */
+        .modal-desc {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text2);
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--bg3);
+            border-radius: 10px;
+            border-left: 4px solid var(--accent);
+        }
+        /* YENİ SAYFA NUMARASI GİRİŞ KUTUSU */
+        .sayfa-input {
+            width: 60px;
+            padding: 8px;
+            text-align: center;
+            background: var(--bg3);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .sayfa-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        /* Numara kutusunun içindeki çirkin okları gizle */
+        .sayfa-input::-webkit-outer-spin-button,
+        .sayfa-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .sayfa-input[type=number] { -moz-appearance: textfield; }
+        /* MODAL AÇIKLAMA KUTUSU */
+        .modal-desc {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text2);
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--bg3);
+            border-radius: 10px;
+            border-left: 4px solid var(--accent);
+        }
     </style>
 </head>
 <body>
@@ -561,8 +633,7 @@
 </div>
 
 <script>
-    // Kategori emoji eşlemesi
-    const KAT_EMOJI = {
+const KAT_EMOJI = {
         'Aile': '👨‍👩‍👧', 'Aksiyon': '💥', 'Animasyon': '🎨',
         'Belgesel': '🎙️', 'Bilim Kurgu': '🚀', 'Dram': '🎭',
         'Fantastik': '🧙', 'Gerilim': '😱', 'Gizem': '🔍',
@@ -572,106 +643,117 @@
         'Vahşi Batı': '🤠', 'Yerli': '🇹🇷'
     };
 
-    // Kategori temizleme: "Aksiyon Filmleri" → "Aksiyon"
-    const TEMIZ_KATEGORILER = new Set(Object.keys(KAT_EMOJI));
-
-    function kategoriTemizle(kat) {
-        if (!kat) return null;
-        kat = kat.trim();
-        // Direkt eşleşme
-        if (TEMIZ_KATEGORILER.has(kat)) return kat;
-        // "X Filmleri" → "X"
-        const temiz = kat.replace(/\s*Filmleri$/i, '').trim();
-        if (TEMIZ_KATEGORILER.has(temiz)) return temiz;
-        return null;
-    }
-
-    let tumFilmler = [];
     let aktifKategori = '';
+    let mevcutSayfa = 1;
+    let toplamSayfa = 1;
+    let aramaMetni = '';
 
-    document.addEventListener('DOMContentLoaded', filmleriYukle);
+    document.addEventListener('DOMContentLoaded', () => {
+        sidebarOlustur();
+        filmleriYukle();
+    });
 
+    // KANZİ YENİLİĞİ: Artık API'den sayfa sayfa çekiyoruz
     async function filmleriYukle() {
         document.getElementById('loadingOverlay').style.display = 'flex';
         try {
-            const res = await fetch('/filmleri-getir');
-            tumFilmler = await res.json();
+            const url = `/filmleri-getir?sayfa=${mevcutSayfa}&kategori=${encodeURIComponent(aktifKategori)}&arama=${encodeURIComponent(aramaMetni)}`;
+            const res = await fetch(url);
+            const data = await res.json();
 
-            // Kategorileri temizle
-            tumFilmler.forEach(f => {
-                const ham = f.kategoriler || (f.kategori ? [f.kategori] : []);
-                const temiz = [...new Set(ham.map(kategoriTemizle).filter(Boolean))];
-                f._kategoriler = temiz.length ? temiz : ['Diğer'];
-            });
+            document.getElementById('filmSayisi').innerHTML = `<b>${data.toplam}</b> film bulundu`;
+            document.getElementById('sonucSayi').textContent = `Sayfa ${data.mevcut_sayfa} / ${data.toplam_sayfa}`;
+            toplamSayfa = data.toplam_sayfa;
 
-            sidebarOlustur();
-            filtrele();
-            document.getElementById('filmSayisi').innerHTML = `<b>${tumFilmler.length}</b> film`;
+            renderFilmler(data.filmler);
+            sayfalamaGuncelle();
+            
+            // Sayfa başa dönsün
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch(e) {
-            console.error(e);
+            console.error("Film çekme hatası:", e);
         } finally {
             document.getElementById('loadingOverlay').style.display = 'none';
         }
     }
+    function sayfayaGit(deger) {
+        let hedef = parseInt(deger);
+        
+        // Adam harf falan yazarsa veya 1'den küçük yazarsa 1'e sabitle
+        if (isNaN(hedef) || hedef < 1) hedef = 1;
+        
+        // Adam toplam sayfadan büyük bir şey yazarsa son sayfaya sabitle
+        if (hedef > toplamSayfa) hedef = toplamSayfa;
+        
+        // Eğer zaten olduğu sayfayı yazmadıysa o sayfaya uç
+        if (hedef !== mevcutSayfa) {
+            mevcutSayfa = hedef;
+            filmleriYukle();
+        } else {
+            // Aynı sayfayı yazarsa kutuyu düzelt bırak
+            document.getElementById('sayfaInput').value = mevcutSayfa;
+        }
+    }
 
-    function sidebarOlustur() {
-        const sidebar = document.getElementById('sidebar');
-        const sayimlar = {};
-
-        tumFilmler.forEach(f => {
-            f._kategoriler.forEach(k => {
-                sayimlar[k] = (sayimlar[k] || 0) + 1;
-            });
-        });
-
-        // Tümü butonu
-        const tumBtn = document.createElement('button');
-        tumBtn.className = 'kat-btn aktif';
-        tumBtn.innerHTML = `<span class="kat-emoji">🎬</span> Tümü`;
-        tumBtn.onclick = () => kategoriSec(tumBtn, '', 'Tüm Filmler');
-        sidebar.appendChild(tumBtn);
-
-        const divider = document.createElement('div');
-        divider.className = 'kat-divider';
-        sidebar.appendChild(divider);
-
-        const sirali = Object.keys(sayimlar).sort();
-        sirali.forEach(kat => {
-            const btn = document.createElement('button');
-            btn.className = 'kat-btn';
-            const emoji = KAT_EMOJI[kat] || '🎬';
-            btn.innerHTML = `<span class="kat-emoji">${emoji}</span> ${kat}`;
-            btn.onclick = () => kategoriSec(btn, kat, kat);
-            sidebar.appendChild(btn);
-        });
+    // ARAMA YAPILDIĞINDA
+    let aramaZamanlayici;
+    function filtrele() {
+        clearTimeout(aramaZamanlayici);
+        aramaZamanlayici = setTimeout(() => {
+            aramaMetni = document.getElementById('aramaInput').value.trim();
+            mevcutSayfa = 1; // Yeni arama yapınca 1. sayfaya dön
+            filmleriYukle();
+        }, 500); // Kullanıcı yazmayı bitirince yarım saniye sonra arar (Sunucuyu yormaz)
     }
 
     function kategoriSec(el, kat, baslik) {
         document.querySelectorAll('.kat-btn').forEach(b => b.classList.remove('aktif'));
         el.classList.add('aktif');
         aktifKategori = kat;
+        mevcutSayfa = 1; // Kategori değişince 1. sayfaya dön
         document.getElementById('aktifBaslik').textContent = baslik;
-        filtrele();
+        filmleriYukle();
     }
 
-    function filtrele() {
-        const ara = document.getElementById('aramaInput').value.trim().toLowerCase();
-
-        let sonuclar = tumFilmler.filter(f => {
-            const katEslesti = !aktifKategori || f._kategoriler.includes(aktifKategori);
-            const aramaEslesti = !ara || f.baslik.toLowerCase().includes(ara);
-            return katEslesti && aramaEslesti;
-        });
-
-        document.getElementById('sonucSayi').textContent = `${sonuclar.length} sonuç`;
-        renderFilmler(sonuclar);
+    function sayfaDegistir(yon) {
+        mevcutSayfa += yon;
+        filmleriYukle();
     }
 
+    function sayfalamaGuncelle() {
+        const grid = document.getElementById('filmGrid');
+        let paginationDiv = document.getElementById('pagination');
+        
+        if (!paginationDiv) {
+            paginationDiv = document.createElement('div');
+            paginationDiv.id = 'pagination';
+            paginationDiv.className = 'pagination';
+            grid.parentNode.appendChild(paginationDiv);
+        }
+
+        if (toplamSayfa > 1) {
+            // KANZİ YENİLİĞİ: Ortadaki yazı yerine interaktif numara kutusu geldi!
+            paginationDiv.innerHTML = `
+                <button class="sayfa-btn" onclick="sayfaDegistir(-1)" ${mevcutSayfa === 1 ? 'disabled' : ''}>⬅ Önceki</button>
+                <div class="sayfa-bilgi" style="display:flex; align-items:center; gap:8px;">
+                    Sayfa 
+                    <input type="number" id="sayfaInput" class="sayfa-input" value="${mevcutSayfa}" min="1" max="${toplamSayfa}" 
+                           onchange="sayfayaGit(this.value)" 
+                           title="Gitmek istediğiniz sayfayı yazın ve Enter'a basın"> 
+                    / ${toplamSayfa}
+                </div>
+                <button class="sayfa-btn" onclick="sayfaDegistir(1)" ${mevcutSayfa === toplamSayfa ? 'disabled' : ''}>Sonraki ➡</button>
+            `;
+            paginationDiv.style.display = 'flex';
+        } else {
+            paginationDiv.style.display = 'none';
+        }
+    }
     function renderFilmler(filmler) {
         const grid = document.getElementById('filmGrid');
         grid.innerHTML = '';
 
-        if (!filmler.length) {
+        if (!filmler || filmler.length === 0) {
             grid.innerHTML = `<div class="bos"><div class="ico">🎬</div><h3>Film bulunamadı</h3><p>Farklı bir arama dene.</p></div>`;
             return;
         }
@@ -679,7 +761,7 @@
         filmler.forEach((film, i) => {
             const afis = film.afis || 'https://via.placeholder.com/160x240/16161f/4a4a6a?text=🎬';
             const imdb = film.imdb || '';
-            const katlar = film._kategoriler;
+            const yil = film.yil ? ` · ${film.yil}` : ''; // Yıl etiketi eklendi
 
             const card = document.createElement('div');
             card.className = 'film-card';
@@ -696,40 +778,53 @@
                 </div>
                 <div class="card-info">
                     <div class="card-title" title="${film.baslik}">${film.baslik}</div>
-                    <div class="card-kat">${katlar.slice(0,2).join(' · ')}</div>
+                    <div class="card-kat">${film.kategoriler.slice(0,2).join(' · ')}${yil}</div>
                 </div>
             `;
+            // Filme tıklayınca bütün objeyi yolluyoruz ki açıklamayı da okuyabilelim
             card.onclick = () => filmAc(film);
             grid.appendChild(card);
         });
     }
 
-    function filmAc(film) {
+function filmAc(film) {
         document.getElementById('modalAfis').src = film.afis || '';
         document.getElementById('modalBaslik').textContent = film.baslik;
-        document.getElementById('modalPlayer').src = film.video_linki;
+        
+        let oynatilacakLink = film.video_linki;
+        if (oynatilacakLink) {
+            if (oynatilacakLink.includes("youtube.com/watch?v=")) {
+                oynatilacakLink = oynatilacakLink.replace("watch?v=", "embed/").split("&")[0];
+            } else if (oynatilacakLink.includes("youtu.be/")) {
+                oynatilacakLink = oynatilacakLink.replace("youtu.be/", "youtube.com/embed/").split("?")[0];
+            }
+        }
+        document.getElementById('modalPlayer').src = oynatilacakLink || '';
 
         const tags = document.getElementById('modalTags');
         tags.innerHTML = '';
 
-        if (film.imdb) {
-            const t = document.createElement('div');
-            t.className = 'modal-tag imdb-tag';
-            t.textContent = `⭐ IMDb ${film.imdb}`;
-            tags.appendChild(t);
-        }
-
-        film._kategoriler.forEach(k => {
-            const t = document.createElement('div');
-            t.className = 'modal-tag';
-            t.textContent = `${KAT_EMOJI[k] || ''} ${k}`;
-            tags.appendChild(t);
+        if (film.imdb) tags.innerHTML += `<div class="modal-tag imdb-tag">⭐ IMDb ${film.imdb}</div>`;
+        if (film.yil) tags.innerHTML += `<div class="modal-tag">📅 ${film.yil}</div>`;
+        
+        film.kategoriler.forEach(k => {
+            if(KAT_EMOJI[k]) tags.innerHTML += `<div class="modal-tag">${KAT_EMOJI[k]} ${k}</div>`;
         });
+
+        // KANZİ YENİLİĞİ: Açıklama kutusunu tag'lerin hemen altına bas!
+        let descDiv = document.getElementById('modalDesc');
+        if (!descDiv) {
+            descDiv = document.createElement('div');
+            descDiv.id = 'modalDesc';
+            descDiv.className = 'modal-desc';
+            tags.after(descDiv); 
+        }
+        // Eğer veritabanında açıklama yoksa varsayılan bir metin yaz
+        descDiv.textContent = film.aciklama || 'Bu film için henüz bir açıklama bulunmuyor.';
 
         document.getElementById('modalBg').classList.add('aktif');
         document.body.style.overflow = 'hidden';
     }
-
     function modalDis(e) {
         if (e.target === document.getElementById('modalBg')) modalKapat();
     }
@@ -740,7 +835,27 @@
         document.body.style.overflow = '';
     }
 
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') modalKapat(); });
+    // Basit Sidebar Olusturucu
+    function sidebarOlustur() {
+        const sidebar = document.getElementById('sidebar');
+        const tumBtn = document.createElement('button');
+        tumBtn.className = 'kat-btn aktif';
+        tumBtn.innerHTML = `<span class="kat-emoji">🎬</span> Tümü`;
+        tumBtn.onclick = () => kategoriSec(tumBtn, '', 'Tüm Filmler');
+        sidebar.appendChild(tumBtn);
+
+        const divider = document.createElement('div');
+        divider.className = 'kat-divider';
+        sidebar.appendChild(divider);
+
+        Object.keys(KAT_EMOJI).forEach(kat => {
+            const btn = document.createElement('button');
+            btn.className = 'kat-btn';
+            btn.innerHTML = `<span class="kat-emoji">${KAT_EMOJI[kat]}</span> ${kat}`;
+            btn.onclick = () => kategoriSec(btn, kat, kat);
+            sidebar.appendChild(btn);
+        });
+    }
 </script>
 </body>
 </html>
